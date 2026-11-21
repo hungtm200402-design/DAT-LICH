@@ -46,3 +46,10 @@ next-env.d.ts
 *.tsbuildinfo
 *.exe
 
+# Generated native iOS build files
+/mobile/ios/.generated/
+/mobile/ios/*.xcodeproj/
+/mobile/ios/DerivedData/
+/mobile/scripts/__pycache__/
+/mobile/tests/__pycache__/
+

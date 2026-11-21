@@ -1,0 +1,59 @@
+name: Build HOÀN Admin IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      admin_url:
+        description: HTTPS URL of the management service
+        required: true
+        default: https://hoan-makeup-artist.hoan-makeup.workers.dev/
+        type: string
+      app_version:
+        description: App version (three numeric components)
+        required: true
+        default: '1.0.0'
+        type: string
+  push:
+    branches: ['build/hoan-admin-ipa*']
+    paths:
+      - '.github/workflows/build-admin-ipa.yml'
+      - 'mobile/**'
+      - 'public/assets/hoan-app-icon-v1.png'
+      - 'tests/admin-ipa.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    env:
+      HOAN_ADMIN_URL: ${{ inputs.admin_url || vars.HOAN_ADMIN_URL }}
+      HOAN_APP_VERSION: ${{ inputs.app_version || '1.0.0' }}
+      HOAN_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify build tools and install XcodeGen
+        run: |
+          xcodebuild -version
+          python3 --version
+          if ! command -v xcodegen >/dev/null; then brew install xcodegen; fi
+          xcodegen --version
+      - name: Test build configuration and IPA validation
+        run: python3 -m unittest discover -s mobile/tests -v
+      - name: Build management IPA
+        id: build
+        run: bash mobile/scripts/build-ipa.sh
+      - name: Upload IPA, checksum and build metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: HOAN-Admin-iOS-${{ github.run_id }}
+          path: |
+            ${{ steps.build.outputs.ipa }}
+            ${{ steps.build.outputs.checksum }}
+            ${{ steps.build.outputs.metadata }}
+          if-no-files-found: error
+          retention-days: 14
